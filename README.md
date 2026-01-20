@@ -1,8 +1,14 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ProjectC
 
-## Getting Started
+이 프로젝트는 [Next.js](https://nextjs.org)로 만들었고 [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app)으로 초기화했습니다.
 
-First, run the development server:
+## 바이브 코딩
+
+이 README는 바이브 코딩으로 다듬었습니다.
+
+## 시작하기
+
+먼저 개발 서버를 실행하세요:
 
 ```bash
 npm run dev
@@ -14,23 +20,31 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+브라우저에서 [http://localhost:3000](http://localhost:3000)을 열면 결과를 확인할 수 있습니다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`src/app/page.tsx`를 수정하면 페이지가 자동으로 갱신됩니다.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+이 프로젝트는 [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts)를 사용해 Vercel의 새로운 폰트 패밀리인 [Geist](https://vercel.com/font)를 자동 최적화 및 로드합니다.
 
-## Learn More
+## GitHub Pages 배포
 
-To learn more about Next.js, take a look at the following resources:
+이 저장소는 GitHub Actions로 정적 내보내기 후 GitHub Pages에 배포합니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- 배포 URL: `https://dragon-it.github.io/projectC`
+- 배포 트리거: `master` 브랜치에 푸시
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+로컬에서 빌드만 확인하려면:
 
-## Deploy on Vercel
+```bash
+npm ci
+npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 더 알아보기
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js에 대해 더 알고 싶다면 아래 자료를 참고하세요:
+
+- [Next.js 문서](https://nextjs.org/docs) - Next.js 기능과 API 소개
+- [Learn Next.js](https://nextjs.org/learn) - 대화형 Next.js 튜토리얼
+
+[Next.js GitHub 저장소](https://github.com/vercel/next.js)도 확인할 수 있습니다. 피드백과 기여를 환영합니다!
