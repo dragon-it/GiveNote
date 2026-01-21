@@ -97,7 +97,14 @@ type EventFormValues = z.infer<typeof eventSchema>;
 
 const formatMoney = (value: number) => value.toLocaleString("ko-KR");
 
-// @ts-nocheck
+type ExportRow = {
+  번호: number | string;
+  날짜: string;
+  이름: string;
+  금액: number | string;
+  인원수: number | string;
+};
+
 export default function Home() {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -226,9 +233,9 @@ export default function Home() {
     setEditingDraft({
       name: record.name,
       amount: String(record.amount),
-      relation: record.relation ?? "ê¸°í?",
+      relation: record.relation ?? "기타",
       companions: String(record.companions ?? 1),
-      paymentMethod: record.paymentMethod ?? "?„ê¸ˆ",
+      paymentMethod: record.paymentMethod ?? "현금",
       memo: record.memo ?? "",
     });
     setEditError("");
@@ -256,7 +263,7 @@ export default function Home() {
 
     if (!parsed.success) {
       setEditError(
-        parsed.error.issues[0]?.message ?? "?…ë ¥ê°’ì„ ?•ì¸??ì£¼ì„¸??",
+        parsed.error.issues[0]?.message ?? "입력값이 유효하지 않습니다.",
       );
       return;
     }
@@ -617,43 +624,37 @@ export default function Home() {
     void handleInlineAdd();
   };
 
-  const exportToXlsx = () => {
-    if (!selectedEvent) {
-      return;
-    }
-    const emptyRow = {
-      번호: "",
-      행사: "",
-      날짜: "",
-      장소: "",
-      호스트: "",
-      이름: "",
-      금액: "",
-      관계: "",
-      인원수: "",
-      전달방식: "",
-      메모: "",
-    };
-    const rows = filteredRecords.map((record, index) => ({
+  const makeEmptyRow = (): ExportRow => ({
+    번호: "",
+    날짜: "",
+    이름: "",
+    금액: "",
+    인원수: "",
+  });
+
+  const makeRows = (): ExportRow[] => {
+    if (!selectedEvent) return [];
+
+    return filteredRecords.map((record, index) => ({
       번호: index + 1,
-      행사: selectedEvent.type,
       날짜: selectedEvent.date,
-      장소: selectedEvent.location,
-      호스트: selectedEvent.host,
       이름: record.name,
       금액: record.amount,
-      관계: record.relation ?? "",
       인원수: record.companions ?? 1,
-      전달방식: record.paymentMethod ?? "",
-      메모: record.memo ?? "",
     }));
-    const summaryRows = [
-      emptyRow,
-      { ...emptyRow, 번호: "총 금액", 금액: totals.totalAmount },
-      { ...emptyRow, 번호: "총 인원수", 인원수: totals.totalPeople },
-      { ...emptyRow, 번호: "총 건수", 메모: `${totals.totalCount}건` },
-    ];
-    const rowsWithSummary = rows.concat(summaryRows);
+  };
+
+  const makeSummaryRows = (): ExportRow[] => [
+    makeEmptyRow(),
+    { ...makeEmptyRow(), 번호: "총 금액", 금액: totals.totalAmount },
+    { ...makeEmptyRow(), 번호: "총 인원수", 인원수: totals.totalPeople },
+  ];
+
+  // XLSX Export
+  const exportToXlsx = () => {
+    if (!selectedEvent) return;
+
+    const rowsWithSummary: ExportRow[] = makeRows().concat(makeSummaryRows());
 
     const worksheet = XLSX.utils.json_to_sheet(rowsWithSummary);
     worksheet["!cols"] = [
@@ -669,55 +670,24 @@ export default function Home() {
       { wch: 12 },
       { wch: 16 },
     ];
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "명단");
-    const filename = `givenote-${selectedEvent.date}.xlsx`;
-    XLSX.writeFile(workbook, filename);
+    XLSX.writeFile(workbook, `givenote-${selectedEvent.date}.xlsx`);
   };
 
+  // CSV Export
   const exportToCsv = () => {
-    if (!selectedEvent) {
-      return;
-    }
-    const emptyRow = {
-      번호: "",
-      행사: "",
-      날짜: "",
-      장소: "",
-      호스트: "",
-      이름: "",
-      금액: "",
-      관계: "",
-      인원수: "",
-      전달방식: "",
-      메모: "",
-    };
-    const rows = filteredRecords.map((record, index) => ({
-      번호: index + 1,
-      행사: selectedEvent.type,
-      날짜: selectedEvent.date,
-      장소: selectedEvent.location,
-      호스트: selectedEvent.host,
-      이름: record.name,
-      금액: record.amount,
-      관계: record.relation ?? "",
-      인원수: record.companions ?? 1,
-      전달방식: record.paymentMethod ?? "",
-      메모: record.memo ?? "",
-    }));
-    const summaryRows = [
-      emptyRow,
-      { ...emptyRow, 번호: "총 금액", 금액: totals.totalAmount },
-      { ...emptyRow, 번호: "총 인원수", 인원수: totals.totalPeople },
-      { ...emptyRow, 번호: "총 건수", 메모: `${totals.totalCount}건` },
-    ];
-    const rowsWithSummary = rows.concat(summaryRows);
+    if (!selectedEvent) return;
+
+    const rowsWithSummary: ExportRow[] = makeRows().concat(makeSummaryRows());
 
     const worksheet = XLSX.utils.json_to_sheet(rowsWithSummary);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "명단");
-    const filename = `givenote-${selectedEvent.date}.csv`;
-    XLSX.writeFile(workbook, filename, { bookType: "csv" });
+    XLSX.writeFile(workbook, `givenote-${selectedEvent.date}.csv`, {
+      bookType: "csv",
+    });
   };
 
   return (
