@@ -1,4 +1,5 @@
 # GiveNote
+
 이제 엑셀 서식 없이 편하게 축의금 명단을 관리하세요 !
 
 [`온라인으로 사용하기`](https://dragon-it.github.io/GiveNote/)
@@ -9,9 +10,9 @@
 
 GiveNote는 브라우저의 로컬 스토리지를 사용합니다. 별도로 저장하지 않아도 스토리지를 삭제하지 않는 한 나중에 다시 접속했을 때 데이터가 유지됩니다.
 
-## 바이브 코딩
+## AI
 
-이 프로젝트는 바이브 코딩으로 다듬었습니다.
+AI 기반 초기 구현 → 구조 리팩토링 → 유지보수 가능한 아키텍처 설계
 
 ## 시작하기
 
@@ -33,7 +34,6 @@ bun dev
 
 이 프로젝트는 [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts)를 사용해 Vercel의 새로운 폰트 패밀리인 [Geist](https://vercel.com/font)를 자동 최적화 및 로드합니다.
 
-
 ## GitHub Pages 배포
 
 이 저장소는 GitHub Actions로 정적 내보내기 후 GitHub Pages에 배포합니다.
@@ -47,4 +47,3 @@ bun dev
 npm ci
 npm run build
 ```
-
