@@ -1,5 +1,5 @@
 # GiveNote
-이제 엑셀 서식 없이 편하게 명단을 관리하세요 !
+이제 엑셀 서식 없이 편하게 축의금 명단을 관리하세요 !
 
 [`온라인으로 사용하기`](https://dragon-it.github.io/GiveNote/)
 
@@ -48,11 +48,3 @@ npm ci
 npm run build
 ```
 
-## 더 알아보기
-
-Next.js에 대해 더 알고 싶다면 아래 자료를 참고하세요:
-
-- [Next.js 문서](https://nextjs.org/docs) - Next.js 기능과 API 소개
-- [Learn Next.js](https://nextjs.org/learn) - 대화형 Next.js 튜토리얼
-
-[Next.js GitHub 저장소](https://github.com/vercel/next.js)도 확인할 수 있습니다. 피드백과 기여를 환영합니다!
