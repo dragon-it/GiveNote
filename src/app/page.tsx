@@ -28,7 +28,6 @@ import {
   type GiftRecord,
   type PaymentMethodType,
   type RelationType,
-  type SideType,
 } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +67,6 @@ const paymentMethods: PaymentMethodType[] = [
   "기타",
 ];
 
-const defaultSide: SideType = "신부측";
-
 const eventSchema = z.object({
   type: z.string().min(1, "행사 타입을 선택해 주세요."),
   date: z.string().min(1, "날짜를 입력해 주세요."),
@@ -81,7 +78,7 @@ const recordSchema = z.object({
   name: z.string().min(1, "이름을 입력해 주세요."),
   amount: z.preprocess(
     (value) => (value === "" ? undefined : Number(value)),
-    z.number().min(1, "금액을 입력해 주세요."),
+    z.number("금액을 입력해 주세요.").min(1, "금액을 입력해 주세요."),
   ),
   relation: z.string().optional(),
   companions: z.preprocess(
@@ -247,9 +244,7 @@ export default function Home() {
   }, []);
 
   const handleEditSave = useCallback(async () => {
-    if (!editingRecordId || !editingDraft) {
-      return;
-    }
+    if (!editingRecordId || !editingDraft) return;
 
     const parsed = recordSchema.safeParse({
       name: editingDraft.name,
@@ -257,7 +252,7 @@ export default function Home() {
       relation: editingDraft.relation || undefined,
       companions: editingDraft.companions,
       paymentMethod: editingDraft.paymentMethod || undefined,
-      memo: editingDraft.memo,
+      memo: editingDraft.memo?.trim() || undefined,
     });
 
     if (!parsed.success) {
@@ -278,7 +273,7 @@ export default function Home() {
     });
 
     handleEditCancel();
-  }, [editingDraft, editingRecordId, handleEditCancel]);
+  }, [editingRecordId, editingDraft, handleEditCancel]);
 
   const handleEditKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -312,7 +307,7 @@ export default function Home() {
           <Button
             variant="ghost"
             size="sm"
-            className="px-2"
+            className="w-full justify-center px-2"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
             이름
@@ -320,19 +315,22 @@ export default function Home() {
         ),
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          if (!isEditing || !editingDraft) {
-            return <div className="font-medium">{row.original.name}</div>;
+          const draft = editingDraft;
+          if (!isEditing || !draft) {
+            return (
+              <div className="font-medium text-center">{row.original.name}</div>
+            );
           }
           return (
             <Input
-              value={editingDraft.name}
+              value={draft.name}
               onChange={(event) =>
                 setEditingDraft((prev) =>
                   prev ? { ...prev, name: event.target.value } : prev,
                 )
               }
               onKeyDown={handleEditKeyDown}
-              className="h-8"
+              className="h-9 w-full min-w-[8rem] text-center"
             />
           );
         },
@@ -343,18 +341,19 @@ export default function Home() {
           <Button
             variant="ghost"
             size="sm"
-            className="px-2"
+            className="w-full justify-end px-2"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            금액
+            금액(만원)
           </Button>
         ),
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          if (!isEditing || !editingDraft) {
+          const draft = editingDraft;
+          if (!isEditing || !draft) {
             return (
               <div className="text-right tabular-nums">
-                {formatMoney(row.original.amount)}원
+                {formatMoney(row.original.amount)}만원
               </div>
             );
           }
@@ -362,14 +361,39 @@ export default function Home() {
             <Input
               type="number"
               inputMode="numeric"
-              value={editingDraft.amount}
+              value={draft.amount}
               onChange={(event) =>
                 setEditingDraft((prev) =>
                   prev ? { ...prev, amount: event.target.value } : prev,
                 )
               }
               onKeyDown={handleEditKeyDown}
-              className="h-8 text-right"
+              className="h-9 w-full min-w-[6rem] text-right"
+            />
+          );
+        },
+      },
+      {
+        accessorKey: "companions",
+        header: "인원 수",
+        cell: ({ row }) => {
+          const isEditing = row.original.id === editingRecordId;
+          const draft = editingDraft;
+          if (!isEditing || !draft) {
+            return row.original.companions ?? 1;
+          }
+          return (
+            <Input
+              type="number"
+              inputMode="numeric"
+              value={draft.companions}
+              onChange={(event) =>
+                setEditingDraft((prev) =>
+                  prev ? { ...prev, companions: event.target.value } : prev,
+                )
+              }
+              onKeyDown={handleEditKeyDown}
+              className="h-9 w-full min-w-[5rem] text-center"
             />
           );
         },
@@ -379,19 +403,20 @@ export default function Home() {
         header: "관계",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          if (!isEditing || !editingDraft) {
+          const draft = editingDraft;
+          if (!isEditing || !draft) {
             return row.original.relation ?? "-";
           }
           return (
             <Select
-              value={editingDraft.relation || undefined}
+              value={draft.relation || undefined}
               onValueChange={(value) =>
                 setEditingDraft((prev) =>
                   prev ? { ...prev, relation: value } : prev,
                 )
               }
             >
-              <SelectTrigger className="h-8">
+              <SelectTrigger className="h-9 w-full min-w-[7rem]">
                 <SelectValue placeholder="관계" />
               </SelectTrigger>
               <SelectContent>
@@ -406,47 +431,24 @@ export default function Home() {
         },
       },
       {
-        accessorKey: "companions",
-        header: "인원 수",
-        cell: ({ row }) => {
-          const isEditing = row.original.id === editingRecordId;
-          if (!isEditing || !editingDraft) {
-            return row.original.companions ?? 1;
-          }
-          return (
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={editingDraft.companions}
-              onChange={(event) =>
-                setEditingDraft((prev) =>
-                  prev ? { ...prev, companions: event.target.value } : prev,
-                )
-              }
-              onKeyDown={handleEditKeyDown}
-              className="h-8"
-            />
-          );
-        },
-      },
-      {
         accessorKey: "paymentMethod",
         header: "전달방식",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          if (!isEditing || !editingDraft) {
+          const draft = editingDraft;
+          if (!isEditing || !draft) {
             return row.original.paymentMethod ?? "-";
           }
           return (
             <Select
-              value={editingDraft.paymentMethod || undefined}
+              value={draft.paymentMethod || undefined}
               onValueChange={(value) =>
                 setEditingDraft((prev) =>
                   prev ? { ...prev, paymentMethod: value } : prev,
                 )
               }
             >
-              <SelectTrigger className="h-8">
+              <SelectTrigger className="h-9 w-full min-w-[7rem]">
                 <SelectValue placeholder="전달 방식" />
               </SelectTrigger>
               <SelectContent>
@@ -465,19 +467,20 @@ export default function Home() {
         header: "메모",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          if (!isEditing || !editingDraft) {
+          const draft = editingDraft;
+          if (!isEditing || !draft) {
             return row.original.memo ?? "-";
           }
           return (
             <Input
-              value={editingDraft.memo}
+              value={draft.memo}
               onChange={(event) =>
                 setEditingDraft((prev) =>
                   prev ? { ...prev, memo: event.target.value } : prev,
                 )
               }
               onKeyDown={handleEditKeyDown}
-              className="h-8"
+              className="h-9 w-full min-w-[10rem] text-center"
             />
           );
         },
@@ -489,7 +492,7 @@ export default function Home() {
           const isEditing = row.original.id === editingRecordId;
           if (isEditing) {
             return (
-              <div className="flex gap-1">
+              <div className="mx-auto flex w-fit gap-1">
                 <Button type="button" size="sm" onClick={handleEditSave}>
                   저장
                 </Button>
@@ -505,7 +508,7 @@ export default function Home() {
             );
           }
           return (
-            <div className="flex gap-1">
+            <div className="mx-auto flex w-fit gap-1">
               <Button
                 type="button"
                 variant="ghost"
@@ -592,7 +595,6 @@ export default function Home() {
 
     await db.records.add({
       eventId: selectedEventId,
-      side: defaultSide,
       name: parsed.data.name,
       amount: Number(parsed.data.amount),
       relation: (parsed.data.relation as RelationType) || undefined,
@@ -948,14 +950,18 @@ export default function Home() {
             </div>
 
             <div className="mt-5 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-              <Table className="border-collapse text-[13px]">
+              <Table className="min-w-[900px] border-collapse text-[13px]">
                 <TableHeader>
                   {table.getHeaderGroups().map((headerGroup) => (
                     <TableRow key={headerGroup.id} className="bg-slate-100">
                       {headerGroup.headers.map((header) => (
                         <TableHead
                           key={header.id}
-                          className="border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
+                          className={`border-b border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 ${
+                            header.column.id === "amount"
+                              ? "text-right"
+                              : "text-center"
+                          }`}
                         >
                           {header.isPlaceholder
                             ? null
@@ -979,7 +985,11 @@ export default function Home() {
                         {row.getVisibleCells().map((cell) => (
                           <TableCell
                             key={cell.id}
-                            className="border-b border-slate-200 px-3"
+                            className={`border-b border-slate-200 px-3 py-2 align-middle ${
+                              cell.column.id === "amount"
+                                ? "text-right"
+                                : "text-center"
+                            }`}
                           >
                             {flexRender(
                               cell.column.columnDef.cell,
@@ -1033,13 +1043,13 @@ export default function Home() {
                 </div>
                 <div className="grid gap-1">
                   <span className="text-[11px] font-medium text-slate-600">
-                    금액
+                    금액(만원)
                   </span>
                   <Input
                     key="inline-amount"
                     type="number"
                     inputMode="numeric"
-                    placeholder="금액"
+                    placeholder="만원"
                     value={inlineForm.amount}
                     onChange={(event) =>
                       setInlineForm((prev) => ({
@@ -1049,29 +1059,6 @@ export default function Home() {
                     }
                     onKeyDown={handleInlineKeyDown}
                   />
-                </div>
-                <div className="grid gap-1">
-                  <span className="text-[11px] font-medium text-slate-600">
-                    관계
-                  </span>
-                  <Select
-                    key="inline-relation"
-                    value={inlineForm.relation || undefined}
-                    onValueChange={(value) =>
-                      setInlineForm((prev) => ({ ...prev, relation: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="관계" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {relations.map((relation) => (
-                        <SelectItem key={relation} value={relation}>
-                          {relation}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
                 <div className="grid gap-1">
                   <span className="text-[11px] font-medium text-slate-600">
@@ -1106,13 +1093,36 @@ export default function Home() {
                       }))
                     }
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="전달 방식" />
                     </SelectTrigger>
                     <SelectContent>
                       {paymentMethods.map((method) => (
                         <SelectItem key={method} value={method}>
                           {method}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-1">
+                  <span className="text-[11px] font-medium text-slate-600">
+                    관계
+                  </span>
+                  <Select
+                    key="inline-relation"
+                    value={inlineForm.relation || undefined}
+                    onValueChange={(value) =>
+                      setInlineForm((prev) => ({ ...prev, relation: value }))
+                    }
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="관계" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relations.map((relation) => (
+                        <SelectItem key={relation} value={relation}>
+                          {relation}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -1158,7 +1168,7 @@ export default function Home() {
                   총액
                 </div>
                 <div className="mt-2 text-2xl font-semibold">
-                  {formatMoney(totals.totalAmount)}원
+                  {formatMoney(totals.totalAmount)}만원
                 </div>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
@@ -1195,7 +1205,7 @@ export default function Home() {
                       >
                         <span>{key}</span>
                         <span className="font-medium">
-                          {formatMoney(value)}원
+                          {formatMoney(value)}만원
                         </span>
                       </div>
                     ),
@@ -1218,7 +1228,7 @@ export default function Home() {
                     >
                       <span>{key}</span>
                       <span className="font-medium">
-                        {formatMoney(value)}원
+                        {formatMoney(value)}만원
                       </span>
                     </div>
                   ))

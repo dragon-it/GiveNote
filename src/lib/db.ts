@@ -1,25 +1,12 @@
 import Dexie, { type Table } from "dexie";
 
-export type EventType =
-  | "결혼식"
-  | "조의"
-  | "돌잔치"
-  | "생일"
-  | "기타";
+export type EventType = "결혼식" | "조의" | "돌잔치" | "생일" | "기타";
 
-export type RelationType =
-  | "친구"
-  | "회사"
-  | "가족"
-  | "지인"
-  | "이웃"
-  | "기타";
+export type RelationType = "친구" | "회사" | "가족" | "지인" | "이웃" | "기타";
 
 export type PaymentMethodType = "현금" | "계좌이체" | "카드" | "페이" | "기타";
 
 export type StatusType = "수납완료" | "미수납" | "반환예정";
-
-export type SideType = "신부측" | "신랑측";
 
 export interface EventItem {
   id?: number;
@@ -33,7 +20,6 @@ export interface EventItem {
 export interface GiftRecord {
   id?: number;
   eventId: number;
-  side: SideType;
   name: string;
   amount: number;
   relation?: RelationType;
@@ -53,7 +39,7 @@ class GiftDB extends Dexie {
     this.version(2).stores({
       events: "++id, type, date, host, createdAt",
       records:
-        "++id, eventId, side, name, amount, relation, paymentMethod, status, createdAt",
+        "++id, eventId, name, amount, relation, paymentMethod, status, createdAt",
     });
   }
 }
