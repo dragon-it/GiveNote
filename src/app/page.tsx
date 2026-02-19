@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type SetStateAction,
 } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -101,6 +102,15 @@ type ExportRow = {
   인원수: number | string;
 };
 
+type EditingDraft = {
+  name: string;
+  amount: string;
+  relation: string;
+  companions: string;
+  paymentMethod: string;
+  memo: string;
+};
+
 export default function Home() {
   const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
@@ -117,16 +127,11 @@ export default function Home() {
   });
   const [inlineError, setInlineError] = useState("");
   const [editingRecordId, setEditingRecordId] = useState<number | null>(null);
-  const [editingDraft, setEditingDraft] = useState<{
-    name: string;
-    amount: string;
-    relation: string;
-    companions: string;
-    paymentMethod: string;
-    memo: string;
-  } | null>(null);
+  const [editingDraft, setEditingDraft] = useState<EditingDraft | null>(null);
   const [editError, setEditError] = useState("");
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const editingDraftRef = useRef(editingDraft);
+  const editingRecordIdRef = useRef(editingRecordId);
 
   const eventsQuery = useLiveQuery(() => db.events.toArray(), []);
   const recordsQuery = useLiveQuery(
@@ -149,6 +154,14 @@ export default function Home() {
       setSelectedEventId(events[0]?.id ?? null);
     }
   }, [events, selectedEventId]);
+
+  useEffect(() => {
+    editingDraftRef.current = editingDraft;
+  }, [editingDraft]);
+
+  useEffect(() => {
+    editingRecordIdRef.current = editingRecordId;
+  }, [editingRecordId]);
 
   const eventForm = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -225,34 +238,56 @@ export default function Home() {
     if (!record.id) {
       return;
     }
-    setEditingRecordId(record.id);
-    setEditingDraft({
+    const nextDraft: EditingDraft = {
       name: record.name,
       amount: String(record.amount),
       relation: record.relation ?? "기타",
       companions: String(record.companions ?? 1),
       paymentMethod: record.paymentMethod ?? "현금",
       memo: record.memo ?? "",
-    });
+    };
+    editingDraftRef.current = nextDraft;
+    setEditingRecordId(record.id);
+    setEditingDraft(nextDraft);
     setEditError("");
   }, []);
 
   const handleEditCancel = useCallback(() => {
+    editingDraftRef.current = null;
     setEditingRecordId(null);
     setEditingDraft(null);
     setEditError("");
   }, []);
 
+  const updateEditingDraft = useCallback(
+    (updater: SetStateAction<EditingDraft | null>) => {
+      setEditingDraft((prev) => {
+        const next =
+          typeof updater === "function"
+            ? (updater as (prev: EditingDraft | null) => EditingDraft | null)(
+                prev,
+              )
+            : updater;
+        editingDraftRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
+
   const handleEditSave = useCallback(async () => {
-    if (!editingRecordId || !editingDraft) return;
+    const currentRecordId = editingRecordIdRef.current;
+    const currentDraft = editingDraftRef.current;
+
+    if (!currentRecordId || !currentDraft) return;
 
     const parsed = recordSchema.safeParse({
-      name: editingDraft.name,
-      amount: editingDraft.amount,
-      relation: editingDraft.relation || undefined,
-      companions: editingDraft.companions,
-      paymentMethod: editingDraft.paymentMethod || undefined,
-      memo: editingDraft.memo?.trim() || undefined,
+      name: currentDraft.name,
+      amount: currentDraft.amount,
+      relation: currentDraft.relation || undefined,
+      companions: currentDraft.companions,
+      paymentMethod: currentDraft.paymentMethod || undefined,
+      memo: currentDraft.memo?.trim() || undefined,
     });
 
     if (!parsed.success) {
@@ -262,7 +297,7 @@ export default function Home() {
       return;
     }
 
-    await db.records.update(editingRecordId, {
+    await db.records.update(currentRecordId, {
       name: parsed.data.name,
       amount: Number(parsed.data.amount),
       relation: (parsed.data.relation as RelationType) || undefined,
@@ -273,7 +308,7 @@ export default function Home() {
     });
 
     handleEditCancel();
-  }, [editingRecordId, editingDraft, handleEditCancel]);
+  }, [handleEditCancel]);
 
   const handleEditKeyDown = useCallback(
     (event: KeyboardEvent<HTMLInputElement>) => {
@@ -315,7 +350,7 @@ export default function Home() {
         ),
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          const draft = editingDraft;
+          const draft = editingDraftRef.current;
           if (!isEditing || !draft) {
             return (
               <div className="font-medium text-center">{row.original.name}</div>
@@ -325,7 +360,7 @@ export default function Home() {
             <Input
               value={draft.name}
               onChange={(event) =>
-                setEditingDraft((prev) =>
+                updateEditingDraft((prev) =>
                   prev ? { ...prev, name: event.target.value } : prev,
                 )
               }
@@ -349,7 +384,7 @@ export default function Home() {
         ),
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          const draft = editingDraft;
+          const draft = editingDraftRef.current;
           if (!isEditing || !draft) {
             return (
               <div className="text-right tabular-nums">
@@ -363,7 +398,7 @@ export default function Home() {
               inputMode="numeric"
               value={draft.amount}
               onChange={(event) =>
-                setEditingDraft((prev) =>
+                updateEditingDraft((prev) =>
                   prev ? { ...prev, amount: event.target.value } : prev,
                 )
               }
@@ -378,7 +413,7 @@ export default function Home() {
         header: "인원 수",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          const draft = editingDraft;
+          const draft = editingDraftRef.current;
           if (!isEditing || !draft) {
             return row.original.companions ?? 1;
           }
@@ -388,7 +423,7 @@ export default function Home() {
               inputMode="numeric"
               value={draft.companions}
               onChange={(event) =>
-                setEditingDraft((prev) =>
+                updateEditingDraft((prev) =>
                   prev ? { ...prev, companions: event.target.value } : prev,
                 )
               }
@@ -403,7 +438,7 @@ export default function Home() {
         header: "관계",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          const draft = editingDraft;
+          const draft = editingDraftRef.current;
           if (!isEditing || !draft) {
             return row.original.relation ?? "-";
           }
@@ -411,7 +446,7 @@ export default function Home() {
             <Select
               value={draft.relation || undefined}
               onValueChange={(value) =>
-                setEditingDraft((prev) =>
+                updateEditingDraft((prev) =>
                   prev ? { ...prev, relation: value } : prev,
                 )
               }
@@ -435,7 +470,7 @@ export default function Home() {
         header: "전달방식",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          const draft = editingDraft;
+          const draft = editingDraftRef.current;
           if (!isEditing || !draft) {
             return row.original.paymentMethod ?? "-";
           }
@@ -443,7 +478,7 @@ export default function Home() {
             <Select
               value={draft.paymentMethod || undefined}
               onValueChange={(value) =>
-                setEditingDraft((prev) =>
+                updateEditingDraft((prev) =>
                   prev ? { ...prev, paymentMethod: value } : prev,
                 )
               }
@@ -467,7 +502,7 @@ export default function Home() {
         header: "메모",
         cell: ({ row }) => {
           const isEditing = row.original.id === editingRecordId;
-          const draft = editingDraft;
+          const draft = editingDraftRef.current;
           if (!isEditing || !draft) {
             return row.original.memo ?? "-";
           }
@@ -475,7 +510,7 @@ export default function Home() {
             <Input
               value={draft.memo}
               onChange={(event) =>
-                setEditingDraft((prev) =>
+                updateEditingDraft((prev) =>
                   prev ? { ...prev, memo: event.target.value } : prev,
                 )
               }
@@ -535,12 +570,12 @@ export default function Home() {
       },
     ],
     [
-      editingDraft,
       editingRecordId,
       handleEditCancel,
       handleEditKeyDown,
       handleEditSave,
       handleEditStart,
+      updateEditingDraft,
     ],
   );
 
@@ -980,7 +1015,11 @@ export default function Home() {
                       <TableRow
                         key={row.id}
                         className="even:bg-slate-50"
-                        onDoubleClick={() => handleEditStart(row.original)}
+                        onDoubleClick={() => {
+                          if (row.original.id !== editingRecordId) {
+                            handleEditStart(row.original);
+                          }
+                        }}
                       >
                         {row.getVisibleCells().map((cell) => (
                           <TableCell

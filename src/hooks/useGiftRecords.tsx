@@ -1,5 +1,4 @@
 "use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ColumnDef,
@@ -516,15 +515,16 @@ export function useGiftRecords({
         },
       },
     ],
+
     [
       editingRecordId,
-      editingDraft,
       relations,
       paymentMethods,
       handleEditCancel,
       handleEditKeyDown,
       handleEditSave,
       handleEditStart,
+      editingDraft,
     ],
   );
 
